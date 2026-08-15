@@ -1,0 +1,20 @@
+name: synthid-rewrite-test
+
+languages:
+  - en
+
+domains:
+  - general
+  - academic
+
+profiles:
+  - minimal
+  - natural
+  - academic
+
+lengths:
+  - 256
+  - 512
+  - 1024
+
+samples_per_cell: 20
