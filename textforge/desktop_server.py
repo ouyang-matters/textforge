@@ -6,6 +6,7 @@ opens the browser, and handles graceful shutdown.
 
 from __future__ import annotations
 
+import io
 import os
 import signal
 import socket
@@ -14,7 +15,25 @@ import threading
 import time
 import webbrowser
 
-import uvicorn
+
+def _fix_stdio() -> None:
+    """Ensure sys.stdout/stderr are valid streams.
+
+    PyInstaller windowed mode (console=False) sets them to None,
+    which crashes uvicorn's log formatter when it calls .isatty().
+    Replace with devnull-backed streams before anything else runs.
+    """
+    if sys.stdout is None:
+        sys.stdout = open(os.devnull, "w", encoding="utf-8")
+    if sys.stderr is None:
+        sys.stderr = open(os.devnull, "w", encoding="utf-8")
+    if sys.stdin is None:
+        sys.stdin = io.StringIO()
+
+
+_fix_stdio()
+
+import uvicorn  # noqa: E402  — must come after _fix_stdio
 
 
 def find_free_port(start: int = 18157, end: int = 18257) -> int:
@@ -58,18 +77,31 @@ def main() -> None:
         f"sqlite+aiosqlite:///{db_path}",
     )
 
+    # Log to file in data dir instead of missing console
+    log_path = os.path.join(data_dir, "server.log")
+
     # Open browser in background thread
     browser_thread = threading.Thread(
         target=open_browser_delayed, args=(port,), daemon=True
     )
     browser_thread.start()
 
-    # Start uvicorn
+    # Start uvicorn — disable its default logging config entirely
+    # to avoid the isatty() crash, then set up basic file logging.
+    import logging
+
+    logging.basicConfig(
+        filename=log_path,
+        level=logging.WARNING,
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    )
+
     config = uvicorn.Config(
         "textforge.api:app",
         host="127.0.0.1",
         port=port,
         log_level="warning",
+        log_config=None,  # Disable uvicorn's built-in log config
     )
     server = uvicorn.Server(config)
 
