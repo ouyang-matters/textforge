@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 from contextlib import asynccontextmanager
 from typing import Any
 
@@ -412,6 +413,51 @@ async def get_settings():
             "enforce_entities": svc._config.validation.enforce_entities,
         },
     }
+
+
+# ---------- Static frontend serving ----------
+
+def _find_static_dir() -> str | None:
+    """Locate the built frontend static files."""
+    candidates = [
+        # Packaged: next to the executable
+        os.path.join(os.path.dirname(sys.executable), "frontend"),
+        os.path.join(os.path.dirname(sys.executable), "..", "frontend"),
+        # PyInstaller _MEIPASS
+        os.path.join(getattr(sys, "_MEIPASS", ""), "frontend"),
+        # Development: apps/desktop/dist
+        os.path.join(os.path.dirname(__file__), "..", "apps", "desktop", "dist"),
+    ]
+    for c in candidates:
+        idx = os.path.join(c, "index.html")
+        if os.path.isfile(idx):
+            return os.path.abspath(c)
+    return None
+
+
+_static_dir = _find_static_dir()
+if _static_dir:
+    from fastapi.responses import FileResponse
+    from fastapi.staticfiles import StaticFiles
+
+    @app.get("/")
+    async def serve_index():
+        return FileResponse(os.path.join(_static_dir, "index.html"))
+
+    # Mount assets AFTER all API routes so it doesn't shadow them
+    app.mount(
+        "/assets",
+        StaticFiles(directory=os.path.join(_static_dir, "assets")),
+        name="static-assets",
+    )
+
+    @app.get("/{full_path:path}")
+    async def serve_spa(full_path: str):
+        """SPA fallback — serve index.html for unmatched routes."""
+        file_path = os.path.join(_static_dir, full_path)
+        if os.path.isfile(file_path):
+            return FileResponse(file_path)
+        return FileResponse(os.path.join(_static_dir, "index.html"))
 
 
 # ---------- Helpers ----------
