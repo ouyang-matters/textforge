@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Sidecar script that launches the TextForge FastAPI server.
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Walk up to the repo root from src-tauri/binaries/
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
+VENV_DIR="$PROJECT_ROOT/.venv"
+
+if [ -f "$VENV_DIR/bin/activate" ]; then
+    # shellcheck disable=SC1091
+    source "$VENV_DIR/bin/activate"
+fi
+
+cd "$PROJECT_ROOT"
+exec python -m uvicorn textforge.api:app \
+    --host 127.0.0.1 \
+    --port 18157 \
+    --log-level warning

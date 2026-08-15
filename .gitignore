@@ -10,3 +10,12 @@ build/
 .pytest_cache/
 .ruff_cache/
 *.egg
+
+# Desktop app
+apps/desktop/node_modules/
+apps/desktop/dist/
+apps/desktop/src-tauri/target/
+release/
+*.deb
+*.rpm
+*.AppImage

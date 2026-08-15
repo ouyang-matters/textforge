@@ -1,0 +1,60 @@
+{
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build",
+    "devPath": "http://localhost:1420",
+    "distDir": "../dist"
+  },
+  "package": {
+    "productName": "TextForge",
+    "version": "0.1.0"
+  },
+  "tauri": {
+    "allowlist": {
+      "shell": {
+        "sidecar": true,
+        "scope": [
+          {
+            "name": "textforge-server",
+            "sidecar": true
+          }
+        ]
+      },
+      "http": {
+        "scope": [
+          "http://localhost:18157/*",
+          "http://127.0.0.1:18157/*"
+        ]
+      },
+      "path": {
+        "all": true
+      }
+    },
+    "bundle": {
+      "active": true,
+      "identifier": "com.textforge.desktop",
+      "icon": [
+        "icons/32x32.png",
+        "icons/128x128.png",
+        "icons/128x128@2x.png",
+        "icons/icon.png"
+      ],
+      "externalBin": [
+        "binaries/textforge-server"
+      ]
+    },
+    "security": {
+      "csp": null
+    },
+    "windows": [
+      {
+        "title": "TextForge",
+        "width": 1200,
+        "height": 800,
+        "resizable": true,
+        "center": true,
+        "fullscreen": false
+      }
+    ]
+  }
+}
